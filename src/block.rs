@@ -120,6 +120,10 @@ impl Block {
         // - Create and use a queue::WorkQueue.
         // - Use sync::Arc to wrap a clone of self for sharing.
         todo!();
+        // use MiningTask here
+        // check proof values for this block from start to end (inclusive). 
+        // The calculation should be done in parallel by the given number of workers and dividing the work into chunks approximately equal parts.
+        // Use the work queue. Should be fairly easy to do the work in parallel, and to stop checking proof values after a valid proof is found.
     }
 
     pub fn mine_for_proof(self: &Block, workers: usize) -> u64 {
@@ -136,11 +140,14 @@ impl Block {
 
 struct MiningTask {
     block: sync::Arc<Block>,
-    // todo!(); // more fields as needed
+    todo!(); // more fields as needed
 }
 
 impl MiningTask {
-    // todo!(); // implement MiningTask::new(???) -> MiningTask
+    todo!(); // implement MiningTask::new(???) -> MiningTask
+    pub fn new() -> MiningTask {
+        let arc = Arc::new()
+    }
 }
 
 impl Task for MiningTask {
@@ -148,5 +155,9 @@ impl Task for MiningTask {
 
     fn run(&self) -> Option<u64> {
         todo!(); // what does it mean to .run?
+        //must return an Option<Output> value. None means no valid proof found, Some(p) means p is valid proof
     }
 }
+
+// need a struct that implements the Task trait, i.e. has an .Output type and a .run() method. This is the impl Task for MiningTask
+// Can store more fields in miningTask as needed
