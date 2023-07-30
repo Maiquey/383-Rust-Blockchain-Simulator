@@ -45,4 +45,21 @@ mod block_tests {
         b1.set_proof(346082);
         assert_eq!(false, b1.is_valid_for_proof(346082));
     }
+
+    #[test]
+    fn basic_mine() {
+        let mut b0 = Block::initial(20);
+        b0.set_proof(b0.mine_range(4, 0, 8*(1<<20), 4));
+        println!("{}", b0.hash_string());
+        println!("{:02x}", b0.hash());
+        let mut b1 = Block::next(&b0, String::from("this is an interesting message"));
+        b1.set_proof(b1.mine_range(4, 0, 8*(1<<20), 4));
+        println!("{}", b1.hash_string());
+        println!("{:02x}", b1.hash());
+        let mut b2 = Block::next(&b1, String::from("this is not interesting"));
+        b2.set_proof(b2.mine_range(4, 0, 8*(1<<20), 4));
+        println!("{}", b2.hash_string());
+        println!("{:02x}", b2.hash());
+        assert_eq!(1, 2);
+    }
 }

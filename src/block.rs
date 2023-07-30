@@ -56,7 +56,7 @@ impl Block {
         // return the block's hash as it would be if we set the proof to `proof`.
         let mut hasher = Sha256::new();
         let hash_string = self.hash_string_for_proof(proof);
-        println!("{}", hash_string);
+        // println!("{}", hash_string);
         hasher.update(hash_string);
         let result = hasher.finalize();
         return result;
@@ -88,7 +88,7 @@ impl Block {
         }
 
         let next_byte_from_end = hash.len() - 1 - n_bytes;
-        println!("dividing: {} % {}", hash[next_byte_from_end], (1<<n_bits));
+        // println!("dividing: {} % {}", hash[next_byte_from_end], (1<<n_bits));
         if hash[next_byte_from_end] as usize % (1<<n_bits) != 0 {
             return false;
         }
@@ -113,13 +113,46 @@ impl Block {
         self.proof = Some(p);
     }
 
+    pub fn mine_serial_parallel(self: &Block, start: u64, end: u64)-> Option<u64>{
+        let mut p = start;
+        while p <= end {
+            if self.is_valid_for_proof(p){
+                return Some(p);
+            }
+            p += 1;
+        }
+        return None;
+    }
+
     pub fn mine_range(self: &Block, workers: usize, start: u64, end: u64, chunks: u64) -> u64 {
         // With `workers` threads, check proof values in the given range, breaking up
 	// into `chunks` tasks in a work queue. Return the first valid proof found.
         // HINTS:
         // - Create and use a queue::WorkQueue.
         // - Use sync::Arc to wrap a clone of self for sharing.
-        todo!();
+        let mut q = WorkQueue::<MiningTask>::new(workers);
+        let shared_block = sync::Arc::new(self);
+
+        let num_values_to_check = end - start + 1;
+        let mut chunk_length = num_values_to_check / chunks;
+        if num_values_to_check % chunks != 0 {
+            chunk_length += 1;
+        }
+
+        for i in 0..chunks {
+            //simulate spawning a thread
+            let parallel_start = chunk_length*i;
+            let parallel_end = parallel_start + chunk_length - 1;
+            match self.mine_serial_parallel(parallel_start, parallel_end){
+                Some(p) => {
+                    return p;
+                }
+                None => {
+                    //Do nothing
+                }
+            }
+        }
+        return 0;
         // use MiningTask here
         // check proof values for this block from start to end (inclusive). 
         // The calculation should be done in parallel by the given number of workers and dividing the work into chunks approximately equal parts.
@@ -140,14 +173,17 @@ impl Block {
 
 struct MiningTask {
     block: sync::Arc<Block>,
-    todo!(); // more fields as needed
+    // todo!(); // more fields as needed
 }
 
 impl MiningTask {
-    todo!(); // implement MiningTask::new(???) -> MiningTask
-    pub fn new() -> MiningTask {
-        let arc = Arc::new()
-    }
+    // todo!(); // implement MiningTask::new(???) -> MiningTask
+    // pub fn new(block: &Block) -> MiningTask {
+    //     let arc = sync::Arc<AtomicUsize>::new(sync::Mutex::new(block));
+    //     MiningTask {
+    //         block: arc
+    //     }
+    // }
 }
 
 impl Task for MiningTask {
@@ -161,3 +197,20 @@ impl Task for MiningTask {
 
 // need a struct that implements the Task trait, i.e. has an .Output type and a .run() method. This is the impl Task for MiningTask
 // Can store more fields in miningTask as needed
+
+// Preliminary test code outputs:
+
+// 0000000000000000000000000000000000000000000000000000000000000000:0:7::385
+// 379bf2fb1a558872f09442a45e300e72f00f03f2c6f4dd29971f67ea4f3d5300
+// 379bf2fb1a558872f09442a45e300e72f00f03f2c6f4dd29971f67ea4f3d5300:1:7:this is an interesting message:20
+// 4a1c722d8021346fa2f440d7f0bbaa585e632f68fd20fed812fc944613b92500
+// 4a1c722d8021346fa2f440d7f0bbaa585e632f68fd20fed812fc944613b92500:2:7:this is not interesting:40
+// ba2f9bf0f9ec629db726f1a5fe7312eb76270459e3f5bfdc4e213df9e47cd380
+// There are other valid proof values for these blocks, but these are the ones my code finds (and the numerically-smallest). Changing to difficulty 20 in the above code, it outputs:
+
+// 0000000000000000000000000000000000000000000000000000000000000000:0:20::1209938
+// 19e2d3b3f0e2ebda3891979d76f957a5d51e1ba0b43f4296d8fb37c470600000
+// 19e2d3b3f0e2ebda3891979d76f957a5d51e1ba0b43f4296d8fb37c470600000:1:20:this is an interesting message:989099
+// a42b7e319ee2dee845f1eb842c31dac60a94c04432319638ec1b9f989d000000
+// a42b7e319ee2dee845f1eb842c31dac60a94c04432319638ec1b9f989d000000:2:20:this is not interesting:1017262
+// 6c589f7a3d2df217fdb39cd969006bc8651a0a3251ffb50470cbc9a0e4d00000
