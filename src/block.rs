@@ -40,7 +40,10 @@ impl Block {
     }
 
     pub fn hash_string_for_proof(&self, proof: u64) -> String {
-        todo!(); // return the hash string this block would have if we set the proof to `proof`.
+        // return the hash string this block would have if we set the proof to `proof`.
+        let mut prev_hash_string = String::new();
+        write!(&mut prev_hash_string, "{:02x}", self.prev_hash).unwrap();
+        format!("{}:{}:{}:{}:{}", prev_hash_string, self.generation, self.difficulty, self.data, proof)
     }
 
     pub fn hash_string(&self) -> String {
@@ -50,7 +53,13 @@ impl Block {
     }
 
     pub fn hash_for_proof(&self, proof: u64) -> Hash {
-        todo!(); // return the block's hash as it would be if we set the proof to `proof`.
+        // return the block's hash as it would be if we set the proof to `proof`.
+        let mut hasher = Sha256::new();
+        let hash_string = self.hash_string_for_proof(proof);
+        println!("{}", hash_string);
+        hasher.update(hash_string);
+        let result = hasher.finalize();
+        return result;
     }
 
     pub fn hash(&self) -> Hash {
