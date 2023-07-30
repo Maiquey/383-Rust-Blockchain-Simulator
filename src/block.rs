@@ -18,11 +18,25 @@ pub struct Block {
 
 impl Block {
     pub fn initial(difficulty: u8) -> Block {
-        todo!(); // create and return a new initial block
+        // create and return a new initial block
+        Block {
+            prev_hash: Hash::default(),
+            generation: 0,
+            difficulty: difficulty,
+            data: "".to_string(),
+            proof: None
+        }
     }
 
     pub fn next(previous: &Block, data: String) -> Block {
-        todo!(); // create and return a block that could follow `previous` in the chain
+        // create and return a block that could follow `previous` in the chain
+        Block {
+            prev_hash: previous.hash(),
+            generation: previous.generation + 1,
+            difficulty: previous.difficulty,
+            data: data,
+            proof: None
+        }
     }
 
     pub fn hash_string_for_proof(&self, proof: u64) -> String {
@@ -94,11 +108,11 @@ impl Block {
 
 struct MiningTask {
     block: sync::Arc<Block>,
-    todo!(); // more fields as needed
+    // todo!(); // more fields as needed
 }
 
 impl MiningTask {
-    todo!(); // implement MiningTask::new(???) -> MiningTask
+    // todo!(); // implement MiningTask::new(???) -> MiningTask
 }
 
 impl Task for MiningTask {
