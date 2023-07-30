@@ -33,4 +33,16 @@ mod block_tests {
         write!(&mut b1_hashed_string, "{:02x}", b1_hash_for_proof).unwrap();
         assert_eq!("9b4417b36afa6d31c728eed7abc14dd84468fdb055d8f3cbe308b0179df40000", b1_hashed_string);
     }
+
+    #[test]
+    fn is_valid_for_proof() {
+        let mut b0 = Block::initial(19);
+        b0.set_proof(87745);
+        assert_eq!(true, b0.is_valid_for_proof(87745));
+        let mut b1 = Block::next(&b0, String::from("hash example 1234"));
+        b1.set_proof(1407891);
+        assert_eq!(true, b1.is_valid_for_proof(1407891));
+        b1.set_proof(346082);
+        assert_eq!(false, b1.is_valid_for_proof(346082));
+    }
 }

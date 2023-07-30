@@ -73,7 +73,26 @@ impl Block {
     }
 
     pub fn is_valid_for_proof(&self, proof: u64) -> bool {
-        todo!(); // would this block be valid if we set the proof to `proof`?
+        // would this block be valid if we set the proof to `proof`?
+        let hash: Hash = self.hash_for_proof(proof);
+        let n_bytes: usize = (self.difficulty/8).into();
+        let n_bits: usize = (self.difficulty%8).into();
+
+        let mut last_byte_index = hash.len() - 1;
+        if n_bytes > 0 {
+            for i in 0..n_bytes {
+                if hash[last_byte_index - i] != 0u8{
+                    return false;
+                }
+            }
+        }
+
+        let next_byte_from_end = hash.len() - 1 - n_bytes;
+        println!("dividing: {} % {}", hash[next_byte_from_end], (1<<n_bits));
+        if hash[next_byte_from_end] as usize % (1<<n_bits) != 0 {
+            return false;
+        }
+        return true;
     }
 
     pub fn is_valid(&self) -> bool {
