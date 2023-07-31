@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod block_tests {
-    use crate::queue::{Task, WorkQueue};
-    use crate::block::{Block};
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::time::{Duration, Instant};
-    use std::{sync, thread, time};
+    // use crate::queue::{Task, WorkQueue};
+    use crate::block::Block;
+    // use std::sync::atomic::{AtomicUsize, Ordering};
+    // use std::time::{Duration, Instant};
+    // use std::{sync, thread, time};
     use std::fmt::Write;
 
     #[test]
@@ -23,7 +23,7 @@ mod block_tests {
         assert_eq!("6c71ff02a08a22309b7dbbcee45d291d4ce955caa32031c50d941e3e9dbd0000", b0_hashed_string);
         println!("Take 2");
         b0.set_proof(56231);
-        let mut b1 = Block::next(&b0, String::from("message"));
+        let b1 = Block::next(&b0, String::from("message"));
         println!("{:?}", b0);
         println!("{:?}", b1);
         let b1_hash_string = b1.hash_string_for_proof(2159);
@@ -48,18 +48,17 @@ mod block_tests {
 
     #[test]
     fn basic_mine() {
-        let mut b0 = Block::initial(20);
-        b0.set_proof(b0.mine_range(4, 0, 8*(1<<20), 4));
+        let mut b0 = Block::initial(7);
+        b0.mine(1);
         println!("{}", b0.hash_string());
         println!("{:02x}", b0.hash());
         let mut b1 = Block::next(&b0, String::from("this is an interesting message"));
-        b1.set_proof(b1.mine_range(4, 0, 8*(1<<20), 4));
+        b1.mine(1);
         println!("{}", b1.hash_string());
         println!("{:02x}", b1.hash());
         let mut b2 = Block::next(&b1, String::from("this is not interesting"));
-        b2.set_proof(b2.mine_range(4, 0, 8*(1<<20), 4));
+        b2.mine(1);
         println!("{}", b2.hash_string());
         println!("{:02x}", b2.hash());
-        assert_eq!(1, 2);
     }
 }

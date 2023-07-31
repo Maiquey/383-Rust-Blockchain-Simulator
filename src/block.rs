@@ -56,7 +56,6 @@ impl Block {
         // return the block's hash as it would be if we set the proof to `proof`.
         let mut hasher = Sha256::new();
         let hash_string = self.hash_string_for_proof(proof);
-        // println!("{}", hash_string);
         hasher.update(hash_string);
         let result = hasher.finalize();
         return result;
@@ -78,7 +77,7 @@ impl Block {
         let n_bytes: usize = (self.difficulty/8).into();
         let n_bits: usize = (self.difficulty%8).into();
 
-        let mut last_byte_index = hash.len() - 1;
+        let last_byte_index = hash.len() - 1;
         if n_bytes > 0 {
             for i in 0..n_bytes {
                 if hash[last_byte_index - i] != 0u8{
@@ -88,7 +87,6 @@ impl Block {
         }
 
         let next_byte_from_end = hash.len() - 1 - n_bytes;
-        // println!("dividing: {} % {}", hash[next_byte_from_end], (1<<n_bits));
         if hash[next_byte_from_end] as usize % (1<<n_bits) != 0 {
             return false;
         }
@@ -124,15 +122,13 @@ impl Block {
         return None;
     }
 
-    pub fn mine_range(self: &Block, workers: usize, start: u64, end: u64, chunks: u64) -> u64 {
+    //preliminary test function with serial mining to ensure mine_range logic is correct
+    pub fn mine_range_serial(self: &Block, _workers: usize, start: u64, end: u64, chunks: u64) -> u64 {
         // With `workers` threads, check proof values in the given range, breaking up
-	// into `chunks` tasks in a work queue. Return the first valid proof found.
+	    // into `chunks` tasks in a work queue. Return the first valid proof found.
         // HINTS:
         // - Create and use a queue::WorkQueue.
         // - Use sync::Arc to wrap a clone of self for sharing.
-        let mut q = WorkQueue::<MiningTask>::new(workers);
-        let shared_block = sync::Arc::new(self);
-
         let num_values_to_check = end - start + 1;
         let mut chunk_length = num_values_to_check / chunks;
         if num_values_to_check % chunks != 0 {
@@ -153,10 +149,49 @@ impl Block {
             }
         }
         return 0;
+    }
+
+    pub fn mine_range(self: &Block, workers: usize, start: u64, end: u64, chunks: u64) -> u64 {
+        // With `workers` threads, check proof values in the given range, breaking up
+        // into `chunks` tasks in a work queue. Return the first valid proof found.
+        // HINTS:
+        // - Create and use a queue::WorkQueue.
+        // - Use sync::Arc to wrap a clone of self for sharing.
         // use MiningTask here
         // check proof values for this block from start to end (inclusive). 
         // The calculation should be done in parallel by the given number of workers and dividing the work into chunks approximately equal parts.
         // Use the work queue. Should be fairly easy to do the work in parallel, and to stop checking proof values after a valid proof is found.
+        let mut q = WorkQueue::<MiningTask>::new(workers);
+        let shared_block = sync::Arc::new(self.clone());
+
+        let num_values_to_check = end - start + 1;
+        let mut chunk_length = num_values_to_check / chunks;
+        //last chunk may be shorter than the rest
+        if num_values_to_check % chunks != 0 {
+            chunk_length += 1;
+        }
+
+        for i in 0..chunks {
+            let parallel_start = chunk_length*i;
+            let mut parallel_end = parallel_start + chunk_length - 1;
+            if parallel_end > end {
+                parallel_end = end;
+            }
+            let _ = q.enqueue(
+                MiningTask::new (
+                    shared_block.clone(),
+                    parallel_start,
+                    parallel_end,
+                )
+            );
+
+        }
+
+        let result = q.recv();
+
+        q.shutdown();
+
+        return result;
     }
 
     pub fn mine_for_proof(self: &Block, workers: usize) -> u64 {
@@ -173,25 +208,33 @@ impl Block {
 
 struct MiningTask {
     block: sync::Arc<Block>,
-    // todo!(); // more fields as needed
+    start: u64,
+    end: u64,
 }
 
 impl MiningTask {
-    // todo!(); // implement MiningTask::new(???) -> MiningTask
-    // pub fn new(block: &Block) -> MiningTask {
-    //     let arc = sync::Arc<AtomicUsize>::new(sync::Mutex::new(block));
-    //     MiningTask {
-    //         block: arc
-    //     }
-    // }
+    pub fn new(block: sync::Arc<Block>, start: u64, end: u64) -> MiningTask {
+        MiningTask {
+            block: block,
+            start: start,
+            end: end
+        }
+    }
 }
 
 impl Task for MiningTask {
     type Output = u64;
 
     fn run(&self) -> Option<u64> {
-        todo!(); // what does it mean to .run?
         //must return an Option<Output> value. None means no valid proof found, Some(p) means p is valid proof
+        let mut p = self.start;
+        while p <= self.end {
+            if self.block.is_valid_for_proof(p){
+                return Some(p);
+            }
+            p += 1;
+        }
+        return None;
     }
 }
 

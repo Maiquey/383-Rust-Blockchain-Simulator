@@ -17,13 +17,12 @@ pub struct WorkQueue<TaskType: 'static + Task + Send> {
 impl<TaskType: 'static + Task + Send> WorkQueue<TaskType> {
     pub fn new(n_workers: usize) -> WorkQueue<TaskType> {
         // create the channels; start the worker threads; record their JoinHandles
-        
         // channels created for jobs going into the queue and the results coming out (work queue doesn't distinguish between results from the tasks
         let (send_tasks, recv_tasks) = spmc::channel();
         let (mpsc_sender, recv_output) = mpsc::channel();
 
         let mut workers = Vec::<thread::JoinHandle<()>>::new();
-        for n in 0..n_workers {
+        for _ in 0..n_workers {
             let snd = mpsc_sender.clone();
             let rcv = recv_tasks.clone();
             workers.push(thread::spawn( move || {
@@ -46,23 +45,21 @@ impl<TaskType: 'static + Task + Send> WorkQueue<TaskType> {
             let task_result = recv_tasks.recv();
             // task_result will be Err() if the spmc::Sender has been destroyed and no more messages can be received here]
             match task_result {
-                Err(e) => {
-                    //println!("shutting down");
+                Err(_) => {
+                    //thread exits
                     return;
                 }
                 Ok(r) => {
-                    //println!("received correctly");
 
                     let output = r.run();
 
                     match output {
                         Some(x) => {
-                            //println!("solution found");
+                            //solution found
                             let _ = send_output.send(x);
                         }
                         None => {
-                            println!("no solution");
-                            todo!()
+                            //No solution, do nothing
                         }
                     }
                 }
@@ -106,7 +103,6 @@ impl<TaskType: 'static + Task + Send> WorkQueue<TaskType> {
         // Destroy the spmc::Sender so everybody knows no more tasks are incoming;
         // drain any pending tasks in the queue; wait for each worker thread to finish.
         // HINT: Vec.drain(..)
-        // std::mem::replace(&mut self.send_tasks, None);
         self.send_tasks = None;
 
         loop {
