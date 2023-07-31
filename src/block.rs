@@ -110,6 +110,20 @@ impl Block {
         }
         self.proof = Some(p);
     }
+    
+    //public function for testing correctness of MiningTask
+    pub fn mine_serial_using_task(self: &mut Block){
+        let shared_block = sync::Arc::new(self.clone());
+        let mining_task = MiningTask::new(shared_block.clone(), 0, 8 * (1<<self.difficulty));
+        match mining_task.run() {
+            Some(p) => {
+                self.set_proof(p);
+            }
+            None => {
+                //No proof found
+            }
+        }
+    }
 
     pub fn mine_serial_parallel(self: &Block, start: u64, end: u64)-> Option<u64>{
         let mut p = start;
@@ -122,7 +136,7 @@ impl Block {
         return None;
     }
 
-    //preliminary test function with serial mining to ensure mine_range logic is correct
+    //deprecated test function using serial mining to ensure mine_range logic is correct before further implementation
     pub fn mine_range_serial(self: &Block, _workers: usize, start: u64, end: u64, chunks: u64) -> u64 {
         // With `workers` threads, check proof values in the given range, breaking up
 	    // into `chunks` tasks in a work queue. Return the first valid proof found.
@@ -237,23 +251,3 @@ impl Task for MiningTask {
         return None;
     }
 }
-
-// need a struct that implements the Task trait, i.e. has an .Output type and a .run() method. This is the impl Task for MiningTask
-// Can store more fields in miningTask as needed
-
-// Preliminary test code outputs:
-
-// 0000000000000000000000000000000000000000000000000000000000000000:0:7::385
-// 379bf2fb1a558872f09442a45e300e72f00f03f2c6f4dd29971f67ea4f3d5300
-// 379bf2fb1a558872f09442a45e300e72f00f03f2c6f4dd29971f67ea4f3d5300:1:7:this is an interesting message:20
-// 4a1c722d8021346fa2f440d7f0bbaa585e632f68fd20fed812fc944613b92500
-// 4a1c722d8021346fa2f440d7f0bbaa585e632f68fd20fed812fc944613b92500:2:7:this is not interesting:40
-// ba2f9bf0f9ec629db726f1a5fe7312eb76270459e3f5bfdc4e213df9e47cd380
-// There are other valid proof values for these blocks, but these are the ones my code finds (and the numerically-smallest). Changing to difficulty 20 in the above code, it outputs:
-
-// 0000000000000000000000000000000000000000000000000000000000000000:0:20::1209938
-// 19e2d3b3f0e2ebda3891979d76f957a5d51e1ba0b43f4296d8fb37c470600000
-// 19e2d3b3f0e2ebda3891979d76f957a5d51e1ba0b43f4296d8fb37c470600000:1:20:this is an interesting message:989099
-// a42b7e319ee2dee845f1eb842c31dac60a94c04432319638ec1b9f989d000000
-// a42b7e319ee2dee845f1eb842c31dac60a94c04432319638ec1b9f989d000000:2:20:this is not interesting:1017262
-// 6c589f7a3d2df217fdb39cd969006bc8651a0a3251ffb50470cbc9a0e4d00000
