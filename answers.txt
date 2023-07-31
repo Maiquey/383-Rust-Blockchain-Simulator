@@ -1,0 +1,18 @@
+1. In the Task trait definition, the type Output is specified as Send. What does this do, and why is this necessary?
+
+    The send trait marks a value that Rust can transfer ownership of to another thread. This is necessary because 
+    in our work queue implementation the worker threads need to be able to transfer ownership of output values they compute
+    to the mpsc receiver channel on the main thread.
+
+2. The hint for .shutdown suggests using a vector's .drain method. Why can we not iterate with .iter() like usual?
+
+    iter() would give us an immutable reference to the thread handles inside the workers vector. We use drain(..) because it 
+    clears the workers vector while giving us ownership of a new vector containing all the workers, which we can go loop 
+    through and join each handle to clean up the threads.
+
+3. Why must we .clone the Block when we put it in the Arc? Why not Arc<&Block>?
+
+    When we .clone the Block and put it inside the Arc, we are providing shared ownership between threads of the actual data 
+    in the Block, rather than a just reference to a Block. Effectively when we .clone Block and put it in Arc, Arc gains ownership
+    of the Block and it can then be shared between threads. If we do Arc<&Block>, the Arc will only own a reference to the Block, which
+    means that the lifetime of the Block cannot be ensured by Arc and it is not thread-safe.
